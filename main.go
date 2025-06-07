@@ -6,11 +6,10 @@ import (
 	"time"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	//"github.com/hajimehoshi/ebiten/v2/vector"
 	"image/color"
 	_ "image/jpeg"
 	"strconv"
-	//"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -32,12 +31,9 @@ type Game struct{
 	lastAutoClick time.Time
 }
 
-//func (g *Game) init(){
-//	g.cnt: 0
-//}
-
 func (g *Game) Update() error {
 	currentSpaceState := ebiten.IsKeyPressed(ebiten.KeySpace)
+	currentEscState := inpututil.IsKeyJustPressed(ebiten.KeyEscape)
 	currentSState := ebiten.IsKeyPressed(ebiten.KeyS)
 	currentOneState := ebiten.IsKeyPressed(ebiten.Key1)
 	currentTwoState := ebiten.IsKeyPressed(ebiten.Key2)
@@ -46,12 +42,10 @@ func (g *Game) Update() error {
 		g.ScoreText = strconv.Itoa(g.Score)
 		fmt.Println("Score:", g.Score)
 	}
-	//if currentSState && !g.prevSState {
-	//	g.Score += 1
-	//	g.ScoreText = strconv.Itoa(g.Score)
-	//	fmt.Println("Score:", g.Score)
-	//}
 	g.prevSpaceState = currentSpaceState
+	if currentEscState{
+		return ebiten.Termination
+	}
 	if currentSState{
 		g.prevSState = !g.prevSState
 	}
@@ -87,13 +81,11 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	//screen.Fill(color.RGBA{})
-	//screen.DrowImage("222.jpg")
 	if(g.prevSpaceState){
 		geoM := ebiten.GeoM{}
 		geoM.Translate(float64(screenWidth/2-50), float64(screenHeight/2-150))
 		geoM.Scale(0.198, 0.198)
-		logo, _, err := ebitenutil.NewImageFromFile("2224.jpg")
+		logo, _, err := ebitenutil.NewImageFromFile("images/2224.jpg")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -103,7 +95,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		geoM := ebiten.GeoM{}
 		geoM.Translate(float64(screenWidth/2-50), float64(screenHeight/2-150))
 		geoM.Scale(0.2, 0.2)
-		logo, _, err := ebitenutil.NewImageFromFile("2224.jpg")
+		logo, _, err := ebitenutil.NewImageFromFile("images/2224.jpg")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -116,11 +108,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, "(2)Tap bot level: " + strconv.Itoa(g.TapBotLevel) + "  " + strconv.Itoa(g.TapBotPrice) + " price", 90, 100)
 		ebitenutil.DebugPrintAt(screen, "(3)Present: " + strconv.Itoa(g.Present) + "/2  " + strconv.Itoa(g.PresentPrice) + " price", 90, 140)
 	}
-	/*if(g.TapBotLevel != 0){
-		time.Sleep(2 * time.Second)
-		g.Score += g.TapBotLevel
-		g.ScoreText = strconv.Itoa(g.Score)
-	}*/
 	ebitenutil.DebugPrint(screen, "Score: " + g.ScoreText)
 	ebitenutil.DebugPrintAt(screen, "Shop(s)", 276, 1)
 }
@@ -130,7 +117,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
-	//init()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Test screan")
 	if err := ebiten.RunGame(&Game{}); err != nil {
