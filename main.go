@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-	//"time"
+	"time"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	//"github.com/hajimehoshi/ebiten/v2/vector"
@@ -29,6 +29,7 @@ type Game struct{
 	ScoreText string
 	prevSpaceState bool
 	prevSState bool
+	lastAutoClick time.Time
 }
 
 //func (g *Game) init(){
@@ -37,12 +38,14 @@ type Game struct{
 
 func (g *Game) Update() error {
 	currentSpaceState := ebiten.IsKeyPressed(ebiten.KeySpace)
+	currentSState := ebiten.IsKeyPressed(ebiten.KeyS)
+	currentOneState := ebiten.IsKeyPressed(ebiten.Key1)
+	currentTwoState := ebiten.IsKeyPressed(ebiten.Key2)
 	if currentSpaceState && !g.prevSpaceState {
-		g.Score += 1
+		g.Score = g.Score + 1 + g.TapLevel 
 		g.ScoreText = strconv.Itoa(g.Score)
 		fmt.Println("Score:", g.Score)
 	}
-	currentSState := ebiten.IsKeyPressed(ebiten.KeyS)
 	//if currentSState && !g.prevSState {
 	//	g.Score += 1
 	//	g.ScoreText = strconv.Itoa(g.Score)
@@ -51,6 +54,34 @@ func (g *Game) Update() error {
 	g.prevSpaceState = currentSpaceState
 	if currentSState{
 		g.prevSState = !g.prevSState
+	}
+	if g.prevSState && currentOneState{
+		if g.TapPrice <= g.Score{
+			g.Score -= g.TapPrice
+			g.ScoreText = strconv.Itoa(g.Score)
+			fmt.Println("Score:", g.Score)
+			g.TapPrice += 20;
+			g.TapLevel += 1;
+		}
+	}
+	if g.prevSState && currentTwoState{
+		if g.TapBotPrice <= g.Score{
+			g.Score -= g.TapBotPrice
+			g.ScoreText = strconv.Itoa(g.Score)
+			fmt.Println("Score:", g.Score)
+			g.TapBotPrice += 100;
+			g.TapBotLevel += 1;
+		}
+	}
+
+	if g.TapBotLevel > 0 {
+		now := time.Now()
+		if now.Sub(g.lastAutoClick) >= 2*time.Second {
+			g.Score += g.TapBotLevel
+			g.ScoreText = strconv.Itoa(g.Score)
+			g.lastAutoClick = now
+			fmt.Println("Auto-click! Score:", g.Score)
+		}
 	}
 	return nil
 }
@@ -81,10 +112,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	if(g.prevSState){
 		screen.Fill(color.Black)
-		ebitenutil.DebugPrintAt(screen, "Tap level: " + strconv.Itoa(g.TapLevel) + "  " + strconv.Itoa(g.TapPrice) + " price", 90, 60)
-		ebitenutil.DebugPrintAt(screen, "Tap bot level: " + strconv.Itoa(g.TapBotLevel) + "  " + strconv.Itoa(g.TapBotPrice) + " price", 90, 100)
-		ebitenutil.DebugPrintAt(screen, "Present: " + strconv.Itoa(g.Present) + "/2  " + strconv.Itoa(g.PresentPrice) + " price", 90, 140)
+		ebitenutil.DebugPrintAt(screen, "(1)Tap level: " + strconv.Itoa(g.TapLevel) + "  " + strconv.Itoa(g.TapPrice) + " price", 90, 60)
+		ebitenutil.DebugPrintAt(screen, "(2)Tap bot level: " + strconv.Itoa(g.TapBotLevel) + "  " + strconv.Itoa(g.TapBotPrice) + " price", 90, 100)
+		ebitenutil.DebugPrintAt(screen, "(3)Present: " + strconv.Itoa(g.Present) + "/2  " + strconv.Itoa(g.PresentPrice) + " price", 90, 140)
 	}
+	/*if(g.TapBotLevel != 0){
+		time.Sleep(2 * time.Second)
+		g.Score += g.TapBotLevel
+		g.ScoreText = strconv.Itoa(g.Score)
+	}*/
 	ebitenutil.DebugPrint(screen, "Score: " + g.ScoreText)
 	ebitenutil.DebugPrintAt(screen, "Shop(s)", 276, 1)
 }
