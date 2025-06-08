@@ -31,7 +31,11 @@ type Game struct{
 	prevSState bool
 	prevFState bool
 	WinBattleOne bool
+	WinBattleTwo bool
+	WinBattleThree bool
 	BattleOne bool
+	BattleTwo bool
+	BattleThree bool
 	ScreenEnd bool
 	lastAutoClick time.Time
 }
@@ -43,6 +47,7 @@ func (g *Game) Update() error {
 	currentFState := inpututil.IsKeyJustPressed(ebiten.KeyF)
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
+	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
 	if g.BattleOne {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace){
 			g.BattleScore -= 1 + g.TapLevel
@@ -52,6 +57,20 @@ func (g *Game) Update() error {
 			g.BattleOne = false
 			g.WinBattleOne = true
 			g.Score += 200
+			g.ScoreText = strconv.Itoa(g.Score)
+		}
+		if currentEscState{
+			return ebiten.Termination
+		}
+	} else if g.BattleTwo{
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace){
+			g.BattleScore -= 1 + g.TapLevel
+			g.prevSpaceState = true
+		}
+		if g.BattleScore <= 0 {
+			g.BattleTwo = false
+			g.WinBattleTwo = true
+			g.Score += 500
 			g.ScoreText = strconv.Itoa(g.Score)
 		}
 		if currentEscState{
@@ -94,6 +113,10 @@ func (g *Game) Update() error {
 		if g.prevFState && currentOneState && !g.WinBattleOne {
 			g.BattleOne = true
 			g.BattleScore = 200
+		}
+		if g.prevFState && currentTwoState && !g.WinBattleTwo {
+			g.BattleTwo = true
+			g.BattleScore = 500
 		}
 	}
 	if g.TapBotLevel > 0 {
@@ -139,6 +162,32 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		healthText := "BOSS HP: " + strconv.Itoa(g.BattleScore)
 		ebitenutil.DebugPrintAt(screen, healthText, 132, 40)
+	} else if g.BattleTwo {
+		screen.Fill(color.Black)
+		if(g.prevSpaceState){
+			geoM := ebiten.GeoM{}
+			geoM.Translate(float64(screenWidth/2-35), float64(screenHeight/2-92))
+			geoM.Scale(0.198, 0.198)
+			logo, _, err := ebitenutil.NewImageFromFile("images/Boss2_2.jpg")
+			if err != nil {
+				log.Fatal(err)
+			}
+			op := &ebiten.DrawImageOptions{GeoM: geoM}
+			screen.DrawImage(logo, op)
+			g.prevSpaceState = false
+		} else {
+			geoM := ebiten.GeoM{}
+			geoM.Translate(float64(screenWidth/2-35), float64(screenHeight/2-92))
+			geoM.Scale(0.2, 0.2)
+			logo, _, err := ebitenutil.NewImageFromFile("images/Boss2_1.jpg")
+			if err != nil {
+				log.Fatal(err)
+			}
+			op := &ebiten.DrawImageOptions{GeoM: geoM}
+			screen.DrawImage(logo, op)
+		}
+		healthText := "BOSS HP: " + strconv.Itoa(g.BattleScore)
+		ebitenutil.DebugPrintAt(screen, healthText, 132, 50)
 	} else {
 		if(g.prevSpaceState){
 			geoM := ebiten.GeoM{}
@@ -188,6 +237,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &ebiten.DrawImageOptions{GeoM: geoM}
 		screen.DrawImage(logo, op)
 		g.WinBattleOne = false
+		g.ScreenEnd = true
+	} else if (g.WinBattleTwo){
+		screen.Fill(color.Black)
+		ebitenutil.DebugPrintAt(screen, "You win!!!", 135, 50)
+		geoM := ebiten.GeoM{}
+		geoM.Translate(float64(screenWidth/2-35), float64(screenHeight/2-92))
+		geoM.Scale(0.2, 0.2)
+		logo, _, err := ebitenutil.NewImageFromFile("images/Boss2_3.jpg")
+		if err != nil {
+			log.Fatal(err)
+		}
+		op := &ebiten.DrawImageOptions{GeoM: geoM}
+		screen.DrawImage(logo, op)
+		g.WinBattleTwo = false
 		g.ScreenEnd = true
 	}
 	ebitenutil.DebugPrint(screen, "Score: " + g.ScoreText)
