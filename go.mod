@@ -1,4 +1,4 @@
-module github.com/yourname/yourgame
+module github.com/NKtym/Clicker-Go
 
 go 1.22.0
 
