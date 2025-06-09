@@ -18,6 +18,10 @@ const (
 )
 
 type Game struct{
+	Click int
+	CntBossWin int
+	PointsEarned int
+	PointsSpent int
 	Score int
 	TapLevel int
 	TapPrice int
@@ -30,6 +34,7 @@ type Game struct{
 	prevSpaceState bool
 	prevSState bool
 	prevFState bool
+	prevTabState bool
 	WinBattleOne bool
 	WinBattleTwo bool
 	WinBattleThree bool
@@ -48,16 +53,22 @@ func (g *Game) Update() error {
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
 	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
+	if inpututil.IsKeyJustPressed(ebiten.KeyTab){
+		g.prevTabState = !g.prevTabState
+	}
 	if g.BattleOne {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace){
 			g.BattleScore -= 1 + g.TapLevel
 			g.prevSpaceState = true
+			g.Click++
 		}
 		if g.BattleScore <= 0 {
 			g.BattleOne = false
 			g.WinBattleOne = true
 			g.Score += 200
 			g.ScoreText = strconv.Itoa(g.Score)
+			g.CntBossWin++
+			g.PointsEarned += 200
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -66,12 +77,15 @@ func (g *Game) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace){
 			g.BattleScore -= 1 + g.TapLevel
 			g.prevSpaceState = true
+			g.Click++
 		}
 		if g.BattleScore <= 0 {
 			g.BattleTwo = false
 			g.WinBattleTwo = true
 			g.Score += 500
 			g.ScoreText = strconv.Itoa(g.Score)
+			g.CntBossWin++
+			g.PointsEarned += 500
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -80,12 +94,15 @@ func (g *Game) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace){
 			g.BattleScore -= 1 + g.TapLevel
 			g.prevSpaceState = true
+			g.Click++
 		}
 		if g.BattleScore <= 0 {
 			g.BattleThree = false
 			g.WinBattleThree = true
 			g.Score += 1000
 			g.ScoreText = strconv.Itoa(g.Score)
+			g.CntBossWin++
+			g.PointsEarned += 1000
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -96,6 +113,8 @@ func (g *Game) Update() error {
 			g.ScoreText = strconv.Itoa(g.Score)
 			fmt.Println("Score:", g.Score)
 			g.prevSpaceState = true
+			g.Click++
+			g.PointsEarned += 1 + g.TapLevel
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -113,6 +132,7 @@ func (g *Game) Update() error {
 				fmt.Println("Score:", g.Score)
 				g.TapPrice += 20;
 				g.TapLevel += 1;
+				g.PointsSpent += g.TapPrice
 			}
 		}
 		if g.prevSState && currentTwoState{
@@ -122,6 +142,7 @@ func (g *Game) Update() error {
 				fmt.Println("Score:", g.Score)
 				g.TapBotPrice += 100;
 				g.TapBotLevel += 1;
+				g.PointsSpent += g.TapBotPrice
 			}
 		}
 		if g.prevFState && currentOneState && !g.WinBattleOne {
@@ -143,7 +164,8 @@ func (g *Game) Update() error {
 			g.Score += g.TapBotLevel
 			g.ScoreText = strconv.Itoa(g.Score)
 			g.lastAutoClick = now
-			fmt.Println("Auto-click! Score:", g.Score)
+			fmt.Println("Auto-Click! Score:", g.Score)
+			g.PointsEarned += g.TapBotLevel
 		}
 	}
 	return nil
@@ -267,6 +289,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			ebitenutil.DebugPrintAt(screen, "(2)Boss 2", 130, 110)
 			ebitenutil.DebugPrintAt(screen, "(3)Boss 3", 130, 150)
 		}
+		if g.prevTabState {
+			screen.Fill(color.Black)
+			ebitenutil.DebugPrintAt(screen, "Click: " + strconv.Itoa(g.Click), 80, 55)
+			ebitenutil.DebugPrintAt(screen, "Points earned over all time: " + strconv.Itoa(g.PointsEarned), 80, 95)
+			ebitenutil.DebugPrintAt(screen, "Points spent over all time: " + strconv.Itoa(g.PointsSpent), 80, 135)
+			ebitenutil.DebugPrintAt(screen, "Defeated bosses: " + strconv.Itoa(g.CntBossWin), 80, 175)
+		}
 	}
 	if(g.WinBattleOne){
 		screen.Fill(color.Black)
@@ -315,6 +344,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "Shop(S)", 276, 1)
 	ebitenutil.DebugPrintAt(screen, "Exit(Esc)", 266, 225)
 	ebitenutil.DebugPrintAt(screen, "Battle(F)", 0, 225)
+	ebitenutil.DebugPrintAt(screen, "Statistics(Tab)", 120, 1)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
