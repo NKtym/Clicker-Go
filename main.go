@@ -5,7 +5,13 @@ import (
 	"log"
 	"time"
 	"os"
-	"bufio"
+	"crypto/aes"
+    "crypto/cipher"
+    "crypto/rand"
+    "crypto/sha256"
+    "encoding/base64"
+    "io"
+	"strings" 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"image/color"
@@ -45,6 +51,50 @@ type Game struct{
 	BattleThree bool
 	ScreenEnd bool
 	lastAutoClick time.Time
+}
+
+func createHash(key string) []byte {
+    hasher := sha256.New()
+    hasher.Write([]byte(key))
+    return hasher.Sum(nil)
+}
+
+func encrypt(data []byte, passphrase string) ([]byte, error) {
+    key := createHash(passphrase)
+    block, _ := aes.NewCipher(key)
+    gcm, err := cipher.NewGCM(block)
+    if err != nil {
+        return nil, err
+    }
+    nonce := make([]byte, gcm.NonceSize())
+    if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+        return nil, err
+    }
+    ciphertext := gcm.Seal(nonce, nonce, data, nil)
+    return ciphertext, nil
+}
+
+func decrypt(data []byte, passphrase string) ([]byte, error) {
+    key := createHash(passphrase)
+    block, err := aes.NewCipher(key)
+    if err != nil {
+        return nil, err
+    }
+    
+    gcm, err := cipher.NewGCM(block)
+    if err != nil {
+        return nil, err
+    }
+    
+    nonceSize := gcm.NonceSize()
+    nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+    
+    plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+    if err != nil {
+        return nil, err
+    }
+    
+    return plaintext, nil
 }
 
 func (g *Game) Update() error {
@@ -162,40 +212,47 @@ func (g *Game) Update() error {
 			g.BattleScore = 1000
 		}
 		if currentKState{
-			f, err := os.Create("save_1.file")
-			if err != nil {
-				panic(err)
-			}
-			defer f.Close()
-			_, err = f.WriteString(strconv.Itoa(g.Score) + "\n" + strconv.Itoa(g.Click) + "\n" + strconv.Itoa(g.CntBossWin) + "\n")
-			_, err = f.WriteString(strconv.Itoa(g.PointsEarned) + "\n" + strconv.Itoa(g.PointsSpent) + "\n" + strconv.Itoa(g.TapLevel) + "\n")
-			_, err = f.WriteString(strconv.Itoa(g.TapBotLevel) + "\n" + strconv.Itoa(g.TapBotPrice) + "\n" + strconv.Itoa(g.TapPrice) + "\n")
-			if err != nil {
-				panic(err)
-			}
+			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
+    		encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
+    		if err != nil {
+        		log.Println("Ошибка шифрования:", err)
+    		} else {
+        		encoded := base64.StdEncoding.EncodeToString(encrypted)
+        		err = os.WriteFile("save/save_1.enc", []byte(encoded), 0644)
+        		if err != nil {
+            		log.Println("Ошибка записи файла:", err)
+        		}
+    		}
 		}
 		if currentLState {
-			file, err := os.Open("save_1.file")
-    		if err != nil{
-        		fmt.Println(err) 
-        		os.Exit(1) 
-    		}
-    		defer file.Close() 
-			scanner := bufio.NewScanner(file)
-			var data []string
-     		for scanner.Scan() {
-            	data = append(data, scanner.Text())
-        	}
-			g.Score, _ = strconv.Atoi(data[0])
-			g.Click, _ = strconv.Atoi(data[1])
-			g.CntBossWin, _ = strconv.Atoi(data[2])
-			g.PointsEarned, _ = strconv.Atoi(data[3])
-			g.PointsSpent, _ = strconv.Atoi(data[4])
-			g.TapLevel, _ = strconv.Atoi(data[5])
-			g.TapBotLevel, _ = strconv.Atoi(data[6])
-			g.TapBotPrice, _ = strconv.Atoi(data[7])
-			g.TapPrice, _ = strconv.Atoi(data[8])
-			g.ScoreText = strconv.Itoa(g.Score)
+			    encrypted, err := os.ReadFile("save/save_1.enc")
+    			if err != nil {
+        			log.Println("Ошибка чтения файла:", err)
+				} else {
+					decoded, err := base64.StdEncoding.DecodeString(string(encrypted))
+					if err != nil {
+						log.Println("Ошибка декодирования base64:", err)
+					} else {
+						decrypted, err := decrypt(decoded, "your-secret-password")
+						if err != nil {
+							log.Println("Ошибка дешифрования:", err)
+						} else {
+							data := strings.Split(string(decrypted), "\n")
+							if len(data) >= 9 {
+								g.Score, _ = strconv.Atoi(data[0])
+								g.Click, _ = strconv.Atoi(data[1])
+								g.CntBossWin, _ = strconv.Atoi(data[2])
+								g.PointsEarned, _ = strconv.Atoi(data[3])
+								g.PointsSpent, _ = strconv.Atoi(data[4])
+								g.TapLevel, _ = strconv.Atoi(data[5])
+								g.TapBotLevel, _ = strconv.Atoi(data[6])
+								g.TapBotPrice, _ = strconv.Atoi(data[7])
+								g.TapPrice, _ = strconv.Atoi(data[8])
+								g.ScoreText = strconv.Itoa(g.Score)
+							}
+						}
+					}
+				}
 		}
 	}
 	if g.TapBotLevel > 0 {
@@ -385,6 +442,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "Exit(Esc)", 266, 225)
 	ebitenutil.DebugPrintAt(screen, "Battle(F)", 0, 225)
 	ebitenutil.DebugPrintAt(screen, "Statistics(Tab)", 120, 1)
+	ebitenutil.DebugPrintAt(screen, "Save(K)", 275, 100)
+	ebitenutil.DebugPrintAt(screen, "Load(L)", 275, 120)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
