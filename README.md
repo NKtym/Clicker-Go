@@ -2,6 +2,8 @@
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/NKtym/Clicker-Go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/NKtym/Clicker-Go)](https://goreportcard.com/report/github.com/NKtym/Clicker-Go)
+[![Code Size](https://img.shields.io/github/languages/code-size/NKtym/Clicker-Go?style=flat-square)](https://github.com/NKtym/Clicker-Go)
+![GitHub Release](https://img.shields.io/github/v/release/NKtym/Clicker-Go?display_name=release)
 ___
 **Clicker-Go** - Игра в которой вам предстоит кликать!!! В ней вы сможете прокачиваться и убивать боссов. Отличная игра чтобы скоротать время.
 
