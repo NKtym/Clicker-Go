@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"os"
+	"bufio"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"image/color"
@@ -50,6 +52,8 @@ func (g *Game) Update() error {
 	currentEscState := inpututil.IsKeyJustPressed(ebiten.KeyEscape)
 	currentSState := inpututil.IsKeyJustPressed(ebiten.KeyS)
 	currentFState := inpututil.IsKeyJustPressed(ebiten.KeyF)
+	currentKState := inpututil.IsKeyJustPressed(ebiten.KeyK)
+	currentLState := inpututil.IsKeyJustPressed(ebiten.KeyL)
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
 	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
@@ -156,6 +160,42 @@ func (g *Game) Update() error {
 		if g.prevFState && currentThreeState && !g.WinBattleThree {
 			g.BattleThree = true
 			g.BattleScore = 1000
+		}
+		if currentKState{
+			f, err := os.Create("save_1.file")
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+			_, err = f.WriteString(strconv.Itoa(g.Score) + "\n" + strconv.Itoa(g.Click) + "\n" + strconv.Itoa(g.CntBossWin) + "\n")
+			_, err = f.WriteString(strconv.Itoa(g.PointsEarned) + "\n" + strconv.Itoa(g.PointsSpent) + "\n" + strconv.Itoa(g.TapLevel) + "\n")
+			_, err = f.WriteString(strconv.Itoa(g.TapBotLevel) + "\n" + strconv.Itoa(g.TapBotPrice) + "\n" + strconv.Itoa(g.TapPrice) + "\n")
+			if err != nil {
+				panic(err)
+			}
+		}
+		if currentLState {
+			file, err := os.Open("save_1.file")
+    		if err != nil{
+        		fmt.Println(err) 
+        		os.Exit(1) 
+    		}
+    		defer file.Close() 
+			scanner := bufio.NewScanner(file)
+			var data []string
+     		for scanner.Scan() {
+            	data = append(data, scanner.Text())
+        	}
+			g.Score, _ = strconv.Atoi(data[0])
+			g.Click, _ = strconv.Atoi(data[1])
+			g.CntBossWin, _ = strconv.Atoi(data[2])
+			g.PointsEarned, _ = strconv.Atoi(data[3])
+			g.PointsSpent, _ = strconv.Atoi(data[4])
+			g.TapLevel, _ = strconv.Atoi(data[5])
+			g.TapBotLevel, _ = strconv.Atoi(data[6])
+			g.TapBotPrice, _ = strconv.Atoi(data[7])
+			g.TapPrice, _ = strconv.Atoi(data[8])
+			g.ScoreText = strconv.Itoa(g.Score)
 		}
 	}
 	if g.TapBotLevel > 0 {
