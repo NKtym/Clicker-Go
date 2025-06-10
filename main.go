@@ -18,6 +18,8 @@ import (
 	_ "image/jpeg"
 	"strconv"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+    "golang.org/x/image/font/basicfont"
 )
 
 const (
@@ -47,6 +49,7 @@ type Game struct{
 	prevLState bool
 	prevYState bool
 	prevNState bool
+	prevIState bool
 	prevConfirm1State bool
 	prevConfirm2State bool
 	prevConfirm3State bool
@@ -113,6 +116,7 @@ func (g *Game) Update() error {
 	currentLState := inpututil.IsKeyJustPressed(ebiten.KeyL)
 	currentYState := inpututil.IsKeyJustPressed(ebiten.KeyY)
 	currentNState := inpututil.IsKeyJustPressed(ebiten.KeyN)
+	currentIState := inpututil.IsKeyJustPressed(ebiten.KeyI)
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
 	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
@@ -187,6 +191,9 @@ func (g *Game) Update() error {
 		}
 		if currentFState{
 			g.prevFState = !g.prevFState
+		}
+		if currentIState{
+			g.prevIState = !g.prevIState
 		}
 		if g.prevSState && currentOneState{
 			if g.TapPrice <= g.Score{
@@ -512,6 +519,66 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			ebitenutil.DebugPrintAt(screen, "Points spent over all time: " + strconv.Itoa(g.PointsSpent), 80, 135)
 			ebitenutil.DebugPrintAt(screen, "Defeated bosses: " + strconv.Itoa(g.CntBossWin), 80, 175)
 		}
+		if g.prevIState {
+			screen.Fill(color.Black)
+			gray := color.RGBA{128, 128, 128, 255}
+			text.Draw(screen, "(1)Base skins", basicfont.Face7x13, 135, 53, color.White)
+			text.Draw(screen, "(2)Seated skins", basicfont.Face7x13, 135, 83, gray)
+			text.Draw(screen, "(3)Yami skins", basicfont.Face7x13, 135, 113, gray)
+			text.Draw(screen, "(4)Vahui skins", basicfont.Face7x13, 135, 143, gray)
+			text.Draw(screen, "(5)Loaf skins", basicfont.Face7x13, 135, 173, gray)
+			text.Draw(screen, "(6)Secret skins", basicfont.Face7x13, 135, 203, gray)
+			geoM := ebiten.GeoM{}
+			geoM.Translate(float64(screenWidth+1150), float64(screenHeight))
+			geoM.Scale(0.04, 0.04)
+			logo, _, err := ebitenutil.NewImageFromFile("images/2224.jpg")
+			if err != nil {
+				log.Fatal(err)
+			}
+			op := &ebiten.DrawImageOptions{GeoM: geoM}
+			screen.DrawImage(logo, op)
+			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
+			geoM.Scale(1, 1)
+			logo2, _, err2 := ebitenutil.NewImageFromFile("images/skins2.jpg")
+			if err2 != nil {
+				log.Fatal(err2)
+			}
+			op2 := &ebiten.DrawImageOptions{GeoM: geoM}
+			op2.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			screen.DrawImage(logo2, op2)
+			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
+			logo3, _, err3 := ebitenutil.NewImageFromFile("images/skins3.jpg")
+			if err3 != nil {
+				log.Fatal(err3)
+			}
+			op3 := &ebiten.DrawImageOptions{GeoM: geoM}
+			op3.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			screen.DrawImage(logo3, op3)
+			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
+			logo4, _, err4 := ebitenutil.NewImageFromFile("images/skins4.jpg")
+			if err4 != nil {
+				log.Fatal(err4)
+			}
+			op4 := &ebiten.DrawImageOptions{GeoM: geoM}
+			op4.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			screen.DrawImage(logo4, op4)
+			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
+			logo5, _, err5 := ebitenutil.NewImageFromFile("images/skins5.jpg")
+			if err5 != nil {
+				log.Fatal(err5)
+			}
+			op5 := &ebiten.DrawImageOptions{GeoM: geoM}
+			op5.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			screen.DrawImage(logo5, op5)
+			geoM.Translate(float64(screenWidth/4-308), float64(screenHeight/4-214))
+			geoM.Scale(1.1, 1.1)
+			logo6, _, err6 := ebitenutil.NewImageFromFile("images/skins666.png")
+			if err6 != nil {
+				log.Fatal(err6)
+			}
+			op6 := &ebiten.DrawImageOptions{GeoM: geoM}
+			screen.DrawImage(logo6, op6)
+		}
 		if g.prevKState {
 			screen.Fill(color.Black)
 			ebitenutil.DebugPrintAt(screen, "Save", 147, 50)
@@ -677,6 +744,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "Statistics(Tab)", 120, 1)
 	ebitenutil.DebugPrintAt(screen, "Save(K)", 275, 100)
 	ebitenutil.DebugPrintAt(screen, "Load(L)", 275, 120)
+	ebitenutil.DebugPrintAt(screen, "Skins(I)", 0, 100)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
