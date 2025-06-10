@@ -526,7 +526,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if f2 != nil {
 				ebitenutil.DebugPrintAt(screen, "(2)Save 2 - exists", 105, 100)
 			} else {
-				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - empty", 105, 100)
+				ebitenutil.DebugPrintAt(screen, "(2)Save 2 - empty", 105, 100)
 			}
 			if f3 != nil{
 				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - exists", 105, 120)
@@ -566,6 +566,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 					g.prevYState = false
 					g.prevConfirm3State = false
 				}
+			} else if g.prevLState{
+				g.prevKState = !g.prevKState
 			}
 		}
 		if g.prevLState {
@@ -582,7 +584,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if f2 != nil {
 				ebitenutil.DebugPrintAt(screen, "(2)Save 2 - exists", 105, 100)
 			} else {
-				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - empty", 105, 100)
+				ebitenutil.DebugPrintAt(screen, "(2)Save 2 - empty", 105, 100)
 			}
 			if f3 != nil{
 				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - exists", 105, 120)
@@ -682,6 +684,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	err := os.MkdirAll("save", 0777)
+	if err != nil {
+		fmt.Println("Ошибка при создании директории:", err)
+		return
+	}
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Test screan")
 	if err := ebiten.RunGame(&Game{}); err != nil {
