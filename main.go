@@ -43,6 +43,13 @@ type Game struct{
 	prevSState bool
 	prevFState bool
 	prevTabState bool
+	prevKState bool
+	prevLState bool
+	prevYState bool
+	prevNState bool
+	prevConfirm1State bool
+	prevConfirm2State bool
+	prevConfirm3State bool
 	WinBattleOne bool
 	WinBattleTwo bool
 	WinBattleThree bool
@@ -104,6 +111,8 @@ func (g *Game) Update() error {
 	currentFState := inpututil.IsKeyJustPressed(ebiten.KeyF)
 	currentKState := inpututil.IsKeyJustPressed(ebiten.KeyK)
 	currentLState := inpututil.IsKeyJustPressed(ebiten.KeyL)
+	currentYState := inpututil.IsKeyJustPressed(ebiten.KeyY)
+	currentNState := inpututil.IsKeyJustPressed(ebiten.KeyN)
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
 	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
@@ -212,19 +221,58 @@ func (g *Game) Update() error {
 			g.BattleScore = 1000
 		}
 		if currentKState{
+			g.prevKState = !g.prevKState
+		}
+		if g.prevKState && currentOneState{
+			g.prevConfirm1State = true
+		} else if g.prevKState && currentTwoState{
+			g.prevConfirm2State = true
+		} else if g.prevKState && currentThreeState{
+			g.prevConfirm3State = true
+		} else if currentYState && g.prevConfirm1State{
+			g.prevYState = true
 			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
-    		encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
-    		if err != nil {
-        		log.Println("Ошибка шифрования:", err)
-    		} else {
-        		encoded := base64.StdEncoding.EncodeToString(encrypted)
-        		err = os.WriteFile("save/save_1.enc", []byte(encoded), 0644)
-        		if err != nil {
-            		log.Println("Ошибка записи файла:", err)
-        		}
-    		}
+			encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
+			if err != nil {
+				log.Println("Ошибка шифрования:", err)
+			} else {
+				encoded := base64.StdEncoding.EncodeToString(encrypted)
+				err = os.WriteFile("save/save_1.enc", []byte(encoded), 0644)
+				if err != nil {
+					log.Println("Ошибка записи файла:", err)
+				}
+			}
+		} else if currentYState && g.prevConfirm2State{
+			g.prevYState = true
+			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
+			encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
+			if err != nil {
+				log.Println("Ошибка шифрования:", err)
+			} else {
+				encoded := base64.StdEncoding.EncodeToString(encrypted)
+				err = os.WriteFile("save/save_2.enc", []byte(encoded), 0644)
+				if err != nil {
+					log.Println("Ошибка записи файла:", err)
+				}
+			}
+		} else if currentYState && g.prevConfirm3State{
+			g.prevYState = true
+			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
+			encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
+			if err != nil {
+				log.Println("Ошибка шифрования:", err)
+			} else {
+				encoded := base64.StdEncoding.EncodeToString(encrypted)
+				err = os.WriteFile("save/save_3.enc", []byte(encoded), 0644)
+				if err != nil {
+					log.Println("Ошибка записи файла:", err)
+				}
+			}
+		} else if currentNState && (g.prevConfirm1State || g.prevConfirm2State || g.prevConfirm3State) {
+			g.prevNState = true
 		}
 		if currentLState {
+				g.prevLState = !g.prevLState
 			    encrypted, err := os.ReadFile("save/save_1.enc")
     			if err != nil {
         			log.Println("Ошибка чтения файла:", err)
@@ -392,6 +440,69 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			ebitenutil.DebugPrintAt(screen, "Points earned over all time: " + strconv.Itoa(g.PointsEarned), 80, 95)
 			ebitenutil.DebugPrintAt(screen, "Points spent over all time: " + strconv.Itoa(g.PointsSpent), 80, 135)
 			ebitenutil.DebugPrintAt(screen, "Defeated bosses: " + strconv.Itoa(g.CntBossWin), 80, 175)
+		}
+		if g.prevKState {
+			screen.Fill(color.Black)
+			ebitenutil.DebugPrintAt(screen, "Save", 147, 50)
+			f1, _ := os.Open("save/save_1.enc")
+			f2, _ := os.Open("save/save_2.enc")
+			f3, _ := os.Open("save/save_3.enc")
+			if f1 != nil {
+				ebitenutil.DebugPrintAt(screen, "(1)Save 1 - exists", 105, 80)
+			} else {
+				ebitenutil.DebugPrintAt(screen, "(1)Save 1 - empty", 105, 80)
+			}
+			if f2 != nil {
+				ebitenutil.DebugPrintAt(screen, "(2)Save 2 - exists", 105, 100)
+			} else {
+				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - empty", 105, 100)
+			}
+			if f3 != nil{
+				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - exists", 105, 120)
+			} else {
+				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - empty", 105, 120)
+			}
+			if g.prevConfirm1State{
+				screen.Fill(color.Black)
+				ebitenutil.DebugPrintAt(screen, "Are you sure you want to save your", 55, 85)
+				ebitenutil.DebugPrintAt(screen, "progress in save 1", 100, 105)
+				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
+				ebitenutil.DebugPrintAt(screen, "(N)No", 175, 135)
+				if (g.prevYState || g.prevNState){
+					g.prevNState = false
+					g.prevYState = false
+					g.prevConfirm1State = false
+				}
+			} else if g.prevConfirm2State{
+				screen.Fill(color.Black)
+				ebitenutil.DebugPrintAt(screen, "Are you sure you want to save your", 55, 85)
+				ebitenutil.DebugPrintAt(screen, "progress in save 2", 100, 105)
+				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
+				ebitenutil.DebugPrintAt(screen, "(N)No", 175, 135)
+				if (g.prevYState || g.prevNState){
+					g.prevNState = false
+					g.prevYState = false
+					g.prevConfirm2State = false
+				}
+			} else if g.prevConfirm3State{
+				screen.Fill(color.Black)
+				ebitenutil.DebugPrintAt(screen, "Are you sure you want to save your", 55, 85)
+				ebitenutil.DebugPrintAt(screen, "progress in save 3", 100, 105)
+				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
+				ebitenutil.DebugPrintAt(screen, "(N)No", 175, 135)
+				if (g.prevYState || g.prevNState){
+					g.prevNState = false
+					g.prevYState = false
+					g.prevConfirm3State = false
+				}
+			}
+		}
+		if g.prevLState {
+			screen.Fill(color.Black)
+			ebitenutil.DebugPrintAt(screen, "Load", 147, 50)
+			ebitenutil.DebugPrintAt(screen, "(1)Save 1 ", 130, 90)
+			ebitenutil.DebugPrintAt(screen, "(2)Save 2 ", 130, 120)
+			ebitenutil.DebugPrintAt(screen, "(3)Save 3 ", 130, 150)
 		}
 	}
 	if(g.WinBattleOne){
