@@ -20,6 +20,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
     "golang.org/x/image/font/basicfont"
+	"io/ioutil"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font"
 )
 
 const (
@@ -56,11 +59,51 @@ type Game struct{
 	WinBattleOne bool
 	WinBattleTwo bool
 	WinBattleThree bool
+	WinBattleOneSkin bool
+	WinBattleTwoSkin bool
+	WinBattleThreeSkin bool
 	BattleOne bool
 	BattleTwo bool
 	BattleThree bool
+	SkinsTwo bool
+	SkinsThree bool
+	SkinsFour bool
+	SkinsFive bool
+	SkinsSix bool
+	InstallSkinsTwo bool
+	InstallSkinsThree bool
+	InstallSkinsFour bool
+	InstallSkinsFive bool
+	InstallSkinsSix bool
+	Skin int
+	SkinPrice int
 	ScreenEnd bool
 	lastAutoClick time.Time
+}
+
+var smallFont font.Face
+
+func init() {
+  // читаем файл
+  b, err := ioutil.ReadFile("assets/IBM2.ttf")
+  if err != nil {
+    log.Fatal(err)
+  }
+  // парсим
+  tt, err := opentype.Parse(b)
+  if err != nil {
+    log.Fatal(err)
+  }
+  // создаём face размером 12 точек (можно 8, 10, 14 и т.д.)
+  smallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+    Size:    5,      // размер шрифта в pt
+    DPI:     144,
+    Hinting: font.HintingFull,
+  })
+  if err != nil {
+    log.Fatal(err)
+  }
+
 }
 
 func createHash(key string) []byte {
@@ -120,8 +163,25 @@ func (g *Game) Update() error {
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
 	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
+	currentFourState := inpututil.IsKeyJustPressed(ebiten.Key4)
+	currentFiveState := inpututil.IsKeyJustPressed(ebiten.Key5)
+	currentSixState := inpututil.IsKeyJustPressed(ebiten.Key6)
+	if (g.WinBattleOneSkin && g.WinBattleTwoSkin && g.WinBattleThreeSkin){
+		g.SkinsFive = true
+	}
+	if (g.Click >= 500){
+		g.SkinsSix = true
+	}
+	if (g.TapBotLevel >= 10){
+		g.SkinsThree = true
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyTab){
 		g.prevTabState = !g.prevTabState
+		g.prevKState = false
+		g.prevSState = false
+		g.prevIState = false
+		g.prevFState = false
+		g.prevLState = false
 	}
 	if g.BattleOne {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace){
@@ -132,10 +192,12 @@ func (g *Game) Update() error {
 		if g.BattleScore <= 0 {
 			g.BattleOne = false
 			g.WinBattleOne = true
+			g.SkinsFour = true
 			g.Score += 200
 			g.ScoreText = strconv.Itoa(g.Score)
 			g.CntBossWin++
 			g.PointsEarned += 200
+			g.WinBattleOneSkin = true
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -153,6 +215,7 @@ func (g *Game) Update() error {
 			g.ScoreText = strconv.Itoa(g.Score)
 			g.CntBossWin++
 			g.PointsEarned += 500
+			g.WinBattleTwoSkin = true
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -170,6 +233,7 @@ func (g *Game) Update() error {
 			g.ScoreText = strconv.Itoa(g.Score)
 			g.CntBossWin++
 			g.PointsEarned += 1000
+			g.WinBattleThreeSkin = true
 		}
 		if currentEscState{
 			return ebiten.Termination
@@ -188,12 +252,74 @@ func (g *Game) Update() error {
 		}
 		if currentSState{
 			g.prevSState = !g.prevSState
+			g.prevKState = false
+			g.prevLState = false
+			g.prevIState = false
+			g.prevFState = false
+			g.prevTabState = false
 		}
 		if currentFState{
 			g.prevFState = !g.prevFState
+			g.prevKState = false
+			g.prevSState = false
+			g.prevIState = false
+			g.prevLState = false
+			g.prevTabState = false
 		}
 		if currentIState{
 			g.prevIState = !g.prevIState
+			g.prevKState = false
+			g.prevSState = false
+			g.prevLState = false
+			g.prevFState = false
+			g.prevTabState = false
+		}
+		if g.prevIState && currentFourState{
+			if g.SkinsFour{
+				g.InstallSkinsTwo = false
+				g.InstallSkinsThree = false
+				g.InstallSkinsFour = true
+				g.InstallSkinsFive = false
+				g.InstallSkinsSix = false
+			}
+		} else if g.prevIState && currentOneState{
+			g.InstallSkinsTwo = false
+			g.InstallSkinsThree = false
+			g.InstallSkinsFour = false
+			g.InstallSkinsFive = false
+			g.InstallSkinsSix = false
+		} else if g.prevIState && currentSixState{
+			if g.SkinsSix{
+				g.InstallSkinsTwo = false
+				g.InstallSkinsThree = false
+				g.InstallSkinsFour = false
+				g.InstallSkinsFive = false
+				g.InstallSkinsSix = true
+			}
+		} else if g.prevIState && currentThreeState{
+			if g.SkinsThree{
+				g.InstallSkinsTwo = false
+				g.InstallSkinsThree = true
+				g.InstallSkinsFour = false
+				g.InstallSkinsFive = false
+				g.InstallSkinsSix = false
+			}
+		} else if g.prevIState && currentTwoState{
+			if g.SkinsTwo{
+				g.InstallSkinsTwo = true
+				g.InstallSkinsThree = false
+				g.InstallSkinsFour = false
+				g.InstallSkinsFive = false
+				g.InstallSkinsSix = false
+			}
+		} else if g.prevIState && currentFiveState{
+			if g.SkinsTwo{
+				g.InstallSkinsTwo = false
+				g.InstallSkinsThree = false
+				g.InstallSkinsFour = false
+				g.InstallSkinsFive = true
+				g.InstallSkinsSix = false
+			}
 		}
 		if g.prevSState && currentOneState{
 			if g.TapPrice <= g.Score{
@@ -204,8 +330,7 @@ func (g *Game) Update() error {
 				g.TapLevel += 1;
 				g.PointsSpent += g.TapPrice
 			}
-		}
-		if g.prevSState && currentTwoState{
+		} else if g.prevSState && currentTwoState{
 			if g.TapBotPrice <= g.Score{
 				g.Score -= g.TapBotPrice
 				g.ScoreText = strconv.Itoa(g.Score)
@@ -213,6 +338,15 @@ func (g *Game) Update() error {
 				g.TapBotPrice += 100;
 				g.TapBotLevel += 1;
 				g.PointsSpent += g.TapBotPrice
+			}
+		} else if g.prevSState && currentFourState{
+			if g.SkinPrice <= g.Score{
+				g.Score -= g.SkinPrice
+				g.ScoreText = strconv.Itoa(g.Score)
+				fmt.Println("Score:", g.Score)
+				g.SkinPrice += 6000
+				g.Skin++
+				g.SkinsTwo = true
 			}
 		}
 		if g.prevFState && currentOneState && !g.WinBattleOne {
@@ -229,6 +363,11 @@ func (g *Game) Update() error {
 		}
 		if currentKState{
 			g.prevKState = !g.prevKState
+			g.prevLState = false
+			g.prevSState = false
+			g.prevIState = false
+			g.prevFState = false
+			g.prevTabState = false
 		}
 		if g.prevKState && currentOneState{
 			g.prevConfirm1State = true
@@ -238,7 +377,7 @@ func (g *Game) Update() error {
 			g.prevConfirm3State = true
 		} else if g.prevKState && currentYState && g.prevConfirm1State{
 			g.prevYState = true
-			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
+			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%t\n%t\n%t\n%t\n%d\n%d\n%t", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice, g.SkinsFour, g.WinBattleOneSkin, g.WinBattleTwoSkin, g.WinBattleThreeSkin, g.Skin, g.SkinPrice, g.SkinsTwo)
 			encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
 			if err != nil {
 				log.Println("Ошибка шифрования:", err)
@@ -251,7 +390,7 @@ func (g *Game) Update() error {
 			}
 		} else if g.prevKState && currentYState && g.prevConfirm2State{
 			g.prevYState = true
-			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
+			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%t\n%t\n%t\n%t\n%d\n%d\n%t", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice, g.SkinsFour, g.WinBattleOneSkin, g.WinBattleTwoSkin, g.WinBattleThreeSkin, g.Skin, g.SkinPrice, g.SkinsTwo)
 			encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
 			if err != nil {
 				log.Println("Ошибка шифрования:", err)
@@ -264,7 +403,7 @@ func (g *Game) Update() error {
 			}
 		} else if g.prevKState && currentYState && g.prevConfirm3State{
 			g.prevYState = true
-			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice)
+			dataStr := fmt.Sprintf("%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n%t\n%t\n%t\n%t\n%d\n%d\n%t", g.Score, g.Click, g.CntBossWin, g.PointsEarned, g.PointsSpent,	g.TapLevel, g.TapBotLevel, g.TapBotPrice, g.TapPrice, g.SkinsFour, g.WinBattleOneSkin, g.WinBattleTwoSkin, g.WinBattleThreeSkin, g.Skin, g.SkinPrice, g.SkinsTwo)
 			encrypted, err := encrypt([]byte(dataStr), "your-secret-password")
 			if err != nil {
 				log.Println("Ошибка шифрования:", err)
@@ -280,6 +419,11 @@ func (g *Game) Update() error {
 		}
 		if currentLState {
 			g.prevLState = !g.prevLState
+			g.prevKState = false
+			g.prevSState = false
+			g.prevIState = false
+			g.prevFState = false
+			g.prevTabState = false
 		}
 		if g.prevLState && currentOneState{
 			g.prevConfirm1State = true
@@ -302,7 +446,7 @@ func (g *Game) Update() error {
 						log.Println("Ошибка дешифрования:", err)
 					} else {
 						data := strings.Split(string(decrypted), "\n")
-						if len(data) >= 9 {
+						if len(data) >= 16 {
 							g.Score, _ = strconv.Atoi(data[0])
 							g.Click, _ = strconv.Atoi(data[1])
 							g.CntBossWin, _ = strconv.Atoi(data[2])
@@ -312,7 +456,14 @@ func (g *Game) Update() error {
 							g.TapBotLevel, _ = strconv.Atoi(data[6])
 							g.TapBotPrice, _ = strconv.Atoi(data[7])
 							g.TapPrice, _ = strconv.Atoi(data[8])
+							g.SkinsFour, _ = strconv.ParseBool(data[9])
 							g.ScoreText = strconv.Itoa(g.Score)
+							g.WinBattleOneSkin, _ = strconv.ParseBool(data[10])
+							g.WinBattleTwoSkin, _ = strconv.ParseBool(data[11])
+							g.WinBattleThreeSkin, _ = strconv.ParseBool(data[12])
+							g.Skin, _ = strconv.Atoi(data[13])
+							g.SkinPrice, _ = strconv.Atoi(data[14])
+							g.SkinsTwo, _ = strconv.ParseBool(data[15])
 						}
 					}
 				}
@@ -332,7 +483,7 @@ func (g *Game) Update() error {
 						log.Println("Ошибка дешифрования:", err)
 					} else {
 						data := strings.Split(string(decrypted), "\n")
-						if len(data) >= 9 {
+						if len(data) >= 16 {
 							g.Score, _ = strconv.Atoi(data[0])
 							g.Click, _ = strconv.Atoi(data[1])
 							g.CntBossWin, _ = strconv.Atoi(data[2])
@@ -342,7 +493,14 @@ func (g *Game) Update() error {
 							g.TapBotLevel, _ = strconv.Atoi(data[6])
 							g.TapBotPrice, _ = strconv.Atoi(data[7])
 							g.TapPrice, _ = strconv.Atoi(data[8])
+							g.SkinsFour, _ = strconv.ParseBool(data[9])
 							g.ScoreText = strconv.Itoa(g.Score)
+							g.WinBattleOneSkin, _ = strconv.ParseBool(data[10])
+							g.WinBattleTwoSkin, _ = strconv.ParseBool(data[11])
+							g.WinBattleThreeSkin, _ = strconv.ParseBool(data[12])
+							g.Skin, _ = strconv.Atoi(data[13])
+							g.SkinPrice, _ = strconv.Atoi(data[14])
+							g.SkinsTwo, _ = strconv.ParseBool(data[15])
 						}
 					}
 				}
@@ -362,7 +520,7 @@ func (g *Game) Update() error {
 						log.Println("Ошибка дешифрования:", err)
 					} else {
 						data := strings.Split(string(decrypted), "\n")
-						if len(data) >= 9 {
+						if len(data) >= 16 {
 							g.Score, _ = strconv.Atoi(data[0])
 							g.Click, _ = strconv.Atoi(data[1])
 							g.CntBossWin, _ = strconv.Atoi(data[2])
@@ -372,7 +530,14 @@ func (g *Game) Update() error {
 							g.TapBotLevel, _ = strconv.Atoi(data[6])
 							g.TapBotPrice, _ = strconv.Atoi(data[7])
 							g.TapPrice, _ = strconv.Atoi(data[8])
+							g.SkinsFour, _ = strconv.ParseBool(data[9])
 							g.ScoreText = strconv.Itoa(g.Score)
+							g.WinBattleOneSkin, _ = strconv.ParseBool(data[10])
+							g.WinBattleTwoSkin, _ = strconv.ParseBool(data[11])
+							g.WinBattleThreeSkin, _ = strconv.ParseBool(data[12])
+							g.Skin, _ = strconv.Atoi(data[13])
+							g.SkinPrice, _ = strconv.Atoi(data[14])
+							g.SkinsTwo, _ = strconv.ParseBool(data[15])
 						}
 					}
 				}
@@ -383,7 +548,7 @@ func (g *Game) Update() error {
 	}
 	if g.TapBotLevel > 0 {
 		now := time.Now()
-		if now.Sub(g.lastAutoClick) >= 2*time.Second {
+		if now.Sub(g.lastAutoClick) >= time.Second {
 			g.Score += g.TapBotLevel
 			g.ScoreText = strconv.Itoa(g.Score)
 			g.lastAutoClick = now
@@ -483,6 +648,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			geoM.Translate(float64(screenWidth/2-50), float64(screenHeight/2-150))
 			geoM.Scale(0.198, 0.198)
 			logo, _, err := ebitenutil.NewImageFromFile("images/2224.jpg")
+			if g.InstallSkinsFour{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins4.jpg")
+			} else if g.InstallSkinsSix{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins6.jpg")
+			} else if g.InstallSkinsThree{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins3.jpg")
+			} else if g.InstallSkinsTwo{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins2.jpg")
+			} else if g.InstallSkinsFive{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins5.jpg")
+			}
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -494,6 +670,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			geoM.Translate(float64(screenWidth/2-50), float64(screenHeight/2-150))
 			geoM.Scale(0.2, 0.2)
 			logo, _, err := ebitenutil.NewImageFromFile("images/2224.jpg")
+			if g.InstallSkinsFour{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins4.jpg")
+			} else if g.InstallSkinsSix{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins6.jpg")
+			} else if g.InstallSkinsThree{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins3.jpg")
+			} else if g.InstallSkinsTwo{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins2.jpg")
+			} else if g.InstallSkinsFive{
+				logo, _, err = ebitenutil.NewImageFromFile("images/skins5.jpg")
+			}
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -502,9 +689,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		if(g.prevSState){
 			screen.Fill(color.Black)
-			ebitenutil.DebugPrintAt(screen, "(1)Tap level: " + strconv.Itoa(g.TapLevel) + "  " + strconv.Itoa(g.TapPrice) + " price", 90, 60)
-			ebitenutil.DebugPrintAt(screen, "(2)Tap bot level: " + strconv.Itoa(g.TapBotLevel) + "  " + strconv.Itoa(g.TapBotPrice) + " price", 90, 100)
-			ebitenutil.DebugPrintAt(screen, "(3)Present: " + strconv.Itoa(g.Present) + "/2  " + strconv.Itoa(g.PresentPrice) + " price", 90, 140)
+			ebitenutil.DebugPrintAt(screen, "(1)Tap level: " + strconv.Itoa(g.TapLevel) + "  " + strconv.Itoa(g.TapPrice) + " price", 75, 50)
+			ebitenutil.DebugPrintAt(screen, "(2)Tap bot level: " + strconv.Itoa(g.TapBotLevel) + "  " + strconv.Itoa(g.TapBotPrice) + " price", 75, 90)
+			ebitenutil.DebugPrintAt(screen, "(3)Present: " + strconv.Itoa(g.Present) + "/2  " + strconv.Itoa(g.PresentPrice) + " price", 75, 130)
+			ebitenutil.DebugPrintAt(screen, "(4)Skins: " + strconv.Itoa(g.Skin) + "/2  " + strconv.Itoa(g.SkinPrice) + " price", 75, 170)
 		}
 		if(g.prevFState){
 			screen.Fill(color.Black)
@@ -523,11 +711,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			screen.Fill(color.Black)
 			gray := color.RGBA{128, 128, 128, 255}
 			text.Draw(screen, "(1)Base skins", basicfont.Face7x13, 135, 53, color.White)
-			text.Draw(screen, "(2)Seated skins", basicfont.Face7x13, 135, 83, gray)
-			text.Draw(screen, "(3)Yami skins", basicfont.Face7x13, 135, 113, gray)
-			text.Draw(screen, "(4)Vahui skins", basicfont.Face7x13, 135, 143, gray)
-			text.Draw(screen, "(5)Loaf skins", basicfont.Face7x13, 135, 173, gray)
-			text.Draw(screen, "(6)Secret skins", basicfont.Face7x13, 135, 203, gray)
 			geoM := ebiten.GeoM{}
 			geoM.Translate(float64(screenWidth+1150), float64(screenHeight))
 			geoM.Scale(0.04, 0.04)
@@ -544,7 +727,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				log.Fatal(err2)
 			}
 			op2 := &ebiten.DrawImageOptions{GeoM: geoM}
-			op2.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			if !g.SkinsTwo{
+				op2.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			}
 			screen.DrawImage(logo2, op2)
 			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
 			logo3, _, err3 := ebitenutil.NewImageFromFile("images/skins3.jpg")
@@ -552,7 +737,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				log.Fatal(err3)
 			}
 			op3 := &ebiten.DrawImageOptions{GeoM: geoM}
-			op3.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			if !g.SkinsThree{
+				op3.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			}
 			screen.DrawImage(logo3, op3)
 			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
 			logo4, _, err4 := ebitenutil.NewImageFromFile("images/skins4.jpg")
@@ -560,7 +747,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				log.Fatal(err4)
 			}
 			op4 := &ebiten.DrawImageOptions{GeoM: geoM}
-			op4.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			if !g.SkinsFour{
+				op4.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
+			}
 			screen.DrawImage(logo4, op4)
 			geoM.Translate(float64(screenWidth/4-300), float64(screenHeight/4-195))
 			logo5, _, err5 := ebitenutil.NewImageFromFile("images/skins5.jpg")
@@ -568,16 +757,55 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				log.Fatal(err5)
 			}
 			op5 := &ebiten.DrawImageOptions{GeoM: geoM}
-			op5.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
-			screen.DrawImage(logo5, op5)
-			geoM.Translate(float64(screenWidth/4-308), float64(screenHeight/4-214))
-			geoM.Scale(1.1, 1.1)
-			logo6, _, err6 := ebitenutil.NewImageFromFile("images/skins666.png")
-			if err6 != nil {
-				log.Fatal(err6)
+			if !g.SkinsFive{
+				op5.ColorM.Scale(0.5, 0.5, 0.5, 1.0)
 			}
-			op6 := &ebiten.DrawImageOptions{GeoM: geoM}
-			screen.DrawImage(logo6, op6)
+			screen.DrawImage(logo5, op5)
+			if g.SkinsTwo{
+				text.Draw(screen, "(2)Seated skins", basicfont.Face7x13, 135, 83, color.White)
+			} else {
+				text.Draw(screen, "(2)Seated skins", basicfont.Face7x13, 135, 78, gray)
+				text.Draw(screen, "Buy in shop", smallFont, 135, 88, gray)
+			}
+			if g.SkinsThree{
+				text.Draw(screen, "(3)Yami skins", basicfont.Face7x13, 135, 113, color.White)
+			} else {
+				text.Draw(screen, "(3)Yami skins", basicfont.Face7x13, 135, 108, gray)
+				text.Draw(screen, "Upgrade autoclick to lvl 10", smallFont, 135, 118, gray)
+			}
+			if g.SkinsFour{
+				text.Draw(screen, "(4)Vahui skins", basicfont.Face7x13, 135, 143, color.White)
+			} else {
+				text.Draw(screen, "(4)Vahui skins", basicfont.Face7x13, 135, 138, gray)
+				text.Draw(screen, "To open, kill the first boss", smallFont, 135, 148, gray)
+			}
+			if g.SkinsFive{
+				text.Draw(screen, "(5)Loaf skins", basicfont.Face7x13, 135, 173, color.White)
+			} else {
+				text.Draw(screen, "(5)Loaf skins", basicfont.Face7x13, 135, 168, gray)
+				text.Draw(screen, "To open, kill all bosses", smallFont, 135, 178, gray)
+			}
+			if g.SkinsSix{
+				text.Draw(screen, "(6)Secret skins", basicfont.Face7x13, 135, 203, color.White)
+				geoM.Translate(float64(screenWidth/4-308), float64(screenHeight/4-214))
+				geoM.Scale(1.1, 1.1)
+				logo6, _, err6 := ebitenutil.NewImageFromFile("images/skins6.jpg")
+				if err6 != nil {
+					log.Fatal(err6)
+				}
+				op6 := &ebiten.DrawImageOptions{GeoM: geoM}
+				screen.DrawImage(logo6, op6)
+			} else {
+				text.Draw(screen, "(6)Secret skins", basicfont.Face7x13, 135, 203, gray)
+				geoM.Translate(float64(screenWidth/4-308), float64(screenHeight/4-214))
+				geoM.Scale(1.1, 1.1)
+				logo6, _, err6 := ebitenutil.NewImageFromFile("images/skins666.png")
+				if err6 != nil {
+					log.Fatal(err6)
+				}
+				op6 := &ebiten.DrawImageOptions{GeoM: geoM}
+				screen.DrawImage(logo6, op6)
+			}
 		}
 		if g.prevKState {
 			screen.Fill(color.Black)
@@ -633,8 +861,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 					g.prevYState = false
 					g.prevConfirm3State = false
 				}
-			} else if g.prevLState{
-				g.prevKState = !g.prevKState
 			}
 		}
 		if g.prevLState {
@@ -759,7 +985,12 @@ func main() {
 	}
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Test screan")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(&Game{
+		SkinPrice: 1500,
+		TapBotPrice: 100,
+		TapPrice: 20,
+		PresentPrice: 500,
+	}); err != nil {
 		log.Fatal(err)
 	}
 }
