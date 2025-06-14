@@ -53,6 +53,7 @@ type Game struct{
 	prevYState bool
 	prevNState bool
 	prevIState bool
+	prevUState bool
 	prevConfirm1State bool
 	prevConfirm2State bool
 	prevConfirm3State bool
@@ -70,11 +71,13 @@ type Game struct{
 	SkinsFour bool
 	SkinsFive bool
 	SkinsSix bool
+	SkinsSixBg bool
 	InstallSkinsTwo bool
 	InstallSkinsThree bool
 	InstallSkinsFour bool
 	InstallSkinsFive bool
 	InstallSkinsSix bool
+	InstallSkinsSixBg bool
 	Skin int
 	SkinPrice int
 	ScreenEnd bool
@@ -84,19 +87,16 @@ type Game struct{
 var smallFont font.Face
 
 func init() {
-  // читаем файл
   b, err := ioutil.ReadFile("assets/IBM2.ttf")
   if err != nil {
     log.Fatal(err)
   }
-  // парсим
   tt, err := opentype.Parse(b)
   if err != nil {
     log.Fatal(err)
   }
-  // создаём face размером 12 точек (можно 8, 10, 14 и т.д.)
   smallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-    Size:    5,      // размер шрифта в pt
+    Size:    5,
     DPI:     144,
     Hinting: font.HintingFull,
   })
@@ -160,6 +160,7 @@ func (g *Game) Update() error {
 	currentYState := inpututil.IsKeyJustPressed(ebiten.KeyY)
 	currentNState := inpututil.IsKeyJustPressed(ebiten.KeyN)
 	currentIState := inpututil.IsKeyJustPressed(ebiten.KeyI)
+	currentUState := inpututil.IsKeyJustPressed(ebiten.KeyU)
 	currentOneState := inpututil.IsKeyJustPressed(ebiten.Key1)
 	currentTwoState := inpututil.IsKeyJustPressed(ebiten.Key2)
 	currentThreeState := inpututil.IsKeyJustPressed(ebiten.Key3)
@@ -257,6 +258,23 @@ func (g *Game) Update() error {
 			g.prevIState = false
 			g.prevFState = false
 			g.prevTabState = false
+			g.prevUState = false
+		}
+		if currentUState{
+			g.prevUState = !g.prevUState
+			g.prevKState = false
+			g.prevLState = false
+			g.prevIState = false
+			g.prevFState = false
+			g.prevSState = false
+			g.prevTabState = false
+		}
+		if g.prevUState && currentSixState{
+			if g.SkinsSixBg{
+				g.InstallSkinsSixBg = true
+			}
+		} else if g.prevUState && currentSixState{
+			g.InstallSkinsSixBg = false
 		}
 		if currentFState{
 			g.prevFState = !g.prevFState
@@ -265,6 +283,7 @@ func (g *Game) Update() error {
 			g.prevIState = false
 			g.prevLState = false
 			g.prevTabState = false
+			g.prevUState = false
 		}
 		if currentIState{
 			g.prevIState = !g.prevIState
@@ -273,6 +292,7 @@ func (g *Game) Update() error {
 			g.prevLState = false
 			g.prevFState = false
 			g.prevTabState = false
+			g.prevUState = false
 		}
 		if g.prevIState && currentFourState{
 			if g.SkinsFour{
@@ -313,7 +333,7 @@ func (g *Game) Update() error {
 				g.InstallSkinsSix = false
 			}
 		} else if g.prevIState && currentFiveState{
-			if g.SkinsTwo{
+			if g.SkinsFive{
 				g.InstallSkinsTwo = false
 				g.InstallSkinsThree = false
 				g.InstallSkinsFour = false
@@ -348,6 +368,16 @@ func (g *Game) Update() error {
 				g.Skin++
 				g.SkinsTwo = true
 			}
+		} else if g.prevSState && currentThreeState{
+			if g.PresentPrice <= g.Score{
+				g.Score -= g.PresentPrice
+				g.ScoreText = strconv.Itoa(g.Score)
+				fmt.Println("Score:", g.Score)
+				g.PresentPrice += 2000
+				if g.PresentPrice == 2500 {
+					g.SkinsSixBg = true
+				}
+			}
 		}
 		if g.prevFState && currentOneState && !g.WinBattleOne {
 			g.BattleOne = true
@@ -368,6 +398,7 @@ func (g *Game) Update() error {
 			g.prevIState = false
 			g.prevFState = false
 			g.prevTabState = false
+			g.prevUState = false
 		}
 		if g.prevKState && currentOneState{
 			g.prevConfirm1State = true
@@ -424,6 +455,7 @@ func (g *Game) Update() error {
 			g.prevIState = false
 			g.prevFState = false
 			g.prevTabState = false
+			g.prevUState = false
 		}
 		if g.prevLState && currentOneState{
 			g.prevConfirm1State = true
@@ -560,12 +592,33 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.InstallSkinsSixBg {
+		logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+		if err != nil {
+			log.Fatal(err)
+		}
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Scale(0.31, 0.5)
+		screen.DrawImage(logo, op)
+	} else {
+		screen.Fill(color.Black)
+	}
 	if(g.ScreenEnd){
 		time.Sleep(5 * time.Second)
 		g.ScreenEnd = false
 	}
 	if(g.BattleOne){
-		screen.Fill(color.Black)
+		if g.InstallSkinsSixBg {
+			logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+			if err != nil {
+				log.Fatal(err)
+			}
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Scale(0.31, 0.5)
+			screen.DrawImage(logo, op)
+		} else {
+			screen.Fill(color.Black)
+		}
 		if(g.prevSpaceState){
 			geoM := ebiten.GeoM{}
 			geoM.Translate(float64(screenWidth/2-300), float64(screenHeight/2-140))
@@ -591,7 +644,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		healthText := "BOSS HP: " + strconv.Itoa(g.BattleScore)
 		ebitenutil.DebugPrintAt(screen, healthText, 132, 40)
 	} else if g.BattleTwo {
-		screen.Fill(color.Black)
+		if g.InstallSkinsSixBg {
+			logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+			if err != nil {
+				log.Fatal(err)
+			}
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Scale(0.31, 0.5)
+			screen.DrawImage(logo, op)
+		} else {
+			screen.Fill(color.Black)
+		}
 		if(g.prevSpaceState){
 			geoM := ebiten.GeoM{}
 			geoM.Translate(float64(screenWidth/2-35), float64(screenHeight/2-92))
@@ -617,7 +680,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		healthText := "BOSS HP: " + strconv.Itoa(g.BattleScore)
 		ebitenutil.DebugPrintAt(screen, healthText, 132, 50)
 	} else if g.BattleThree {
-		screen.Fill(color.Black)
+		if g.InstallSkinsSixBg {
+			logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+			if err != nil {
+				log.Fatal(err)
+			}
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Scale(0.31, 0.5)
+			screen.DrawImage(logo, op)
+		} else {
+			screen.Fill(color.Black)
+		}
 		if(g.prevSpaceState){
 			geoM := ebiten.GeoM{}
 			geoM.Translate(float64(screenWidth/2-155), float64(screenHeight/2-135))
@@ -688,27 +761,82 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			screen.DrawImage(logo, op)
 		}
 		if(g.prevSState){
-			screen.Fill(color.Black)
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 			ebitenutil.DebugPrintAt(screen, "(1)Tap level: " + strconv.Itoa(g.TapLevel) + "  " + strconv.Itoa(g.TapPrice) + " price", 75, 50)
 			ebitenutil.DebugPrintAt(screen, "(2)Tap bot level: " + strconv.Itoa(g.TapBotLevel) + "  " + strconv.Itoa(g.TapBotPrice) + " price", 75, 90)
 			ebitenutil.DebugPrintAt(screen, "(3)Present: " + strconv.Itoa(g.Present) + "/2  " + strconv.Itoa(g.PresentPrice) + " price", 75, 130)
 			ebitenutil.DebugPrintAt(screen, "(4)Skins: " + strconv.Itoa(g.Skin) + "/2  " + strconv.Itoa(g.SkinPrice) + " price", 75, 170)
 		}
 		if(g.prevFState){
-			screen.Fill(color.Black)
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 			ebitenutil.DebugPrintAt(screen, "(1)Boss 1", 130, 70)
 			ebitenutil.DebugPrintAt(screen, "(2)Boss 2", 130, 110)
 			ebitenutil.DebugPrintAt(screen, "(3)Boss 3", 130, 150)
 		}
 		if g.prevTabState {
-			screen.Fill(color.Black)
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 			ebitenutil.DebugPrintAt(screen, "Click: " + strconv.Itoa(g.Click), 80, 55)
 			ebitenutil.DebugPrintAt(screen, "Points earned over all time: " + strconv.Itoa(g.PointsEarned), 80, 95)
 			ebitenutil.DebugPrintAt(screen, "Points spent over all time: " + strconv.Itoa(g.PointsSpent), 80, 135)
 			ebitenutil.DebugPrintAt(screen, "Defeated bosses: " + strconv.Itoa(g.CntBossWin), 80, 175)
 		}
+		if g.prevUState {
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
+			text.Draw(screen, "(1)Base BG", basicfont.Face7x13, 135, 53, color.White)
+			text.Draw(screen, "(6)Secret BG", basicfont.Face7x13, 135, 203, color.White)
+		}
 		if g.prevIState {
-			screen.Fill(color.Black)
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 			gray := color.RGBA{128, 128, 128, 255}
 			text.Draw(screen, "(1)Base skins", basicfont.Face7x13, 135, 53, color.White)
 			geoM := ebiten.GeoM{}
@@ -808,7 +936,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 		if g.prevKState {
-			screen.Fill(color.Black)
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 			ebitenutil.DebugPrintAt(screen, "Save", 147, 50)
 			f1, _ := os.Open("save/save_1.enc")
 			f2, _ := os.Open("save/save_2.enc")
@@ -829,7 +967,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - empty", 105, 120)
 			}
 			if g.prevConfirm1State{
-				screen.Fill(color.Black)
+				if g.InstallSkinsSixBg {
+					logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+					if err != nil {
+						log.Fatal(err)
+					}
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Scale(0.31, 0.5)
+					screen.DrawImage(logo, op)
+				} else {
+					screen.Fill(color.Black)
+				}
 				ebitenutil.DebugPrintAt(screen, "Are you sure you want to save your", 55, 85)
 				ebitenutil.DebugPrintAt(screen, "progress in save 1", 100, 105)
 				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
@@ -840,7 +988,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 					g.prevConfirm1State = false
 				}
 			} else if g.prevConfirm2State{
-				screen.Fill(color.Black)
+				if g.InstallSkinsSixBg {
+					logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+					if err != nil {
+						log.Fatal(err)
+					}
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Scale(0.31, 0.5)
+					screen.DrawImage(logo, op)
+				} else {
+					screen.Fill(color.Black)
+				}
 				ebitenutil.DebugPrintAt(screen, "Are you sure you want to save your", 55, 85)
 				ebitenutil.DebugPrintAt(screen, "progress in save 2", 100, 105)
 				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
@@ -851,7 +1009,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 					g.prevConfirm2State = false
 				}
 			} else if g.prevConfirm3State{
-				screen.Fill(color.Black)
+				if g.InstallSkinsSixBg {
+					logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+					if err != nil {
+						log.Fatal(err)
+					}
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Scale(0.31, 0.5)
+					screen.DrawImage(logo, op)
+				} else {
+					screen.Fill(color.Black)
+				}
 				ebitenutil.DebugPrintAt(screen, "Are you sure you want to save your", 55, 85)
 				ebitenutil.DebugPrintAt(screen, "progress in save 3", 100, 105)
 				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
@@ -864,7 +1032,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 		if g.prevLState {
-			screen.Fill(color.Black)
+			if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 			ebitenutil.DebugPrintAt(screen, "Load", 147, 50)
 			f1, _ := os.Open("save/save_1.enc")
 			f2, _ := os.Open("save/save_2.enc")
@@ -885,7 +1063,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				ebitenutil.DebugPrintAt(screen, "(3)Save 3 - empty", 105, 120)
 			}
 			if g.prevConfirm1State{
-				screen.Fill(color.Black)
+				if g.InstallSkinsSixBg {
+					logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+					if err != nil {
+						log.Fatal(err)
+					}
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Scale(0.31, 0.5)
+					screen.DrawImage(logo, op)
+				} else {
+					screen.Fill(color.Black)
+				}
 				ebitenutil.DebugPrintAt(screen, "Are you sure you want to load", 75, 80)
 				ebitenutil.DebugPrintAt(screen, "progress from save 1", 100, 105)
 				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
@@ -896,7 +1084,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 					g.prevConfirm1State = false
 				}
 			} else if g.prevConfirm2State{
-				screen.Fill(color.Black)
+				if g.InstallSkinsSixBg {
+					logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+					if err != nil {
+						log.Fatal(err)
+					}
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Scale(0.31, 0.5)
+					screen.DrawImage(logo, op)
+				} else {
+					screen.Fill(color.Black)
+				}
 				ebitenutil.DebugPrintAt(screen, "Are you sure you want to load", 75, 80)
 				ebitenutil.DebugPrintAt(screen, "progress from save 2", 100, 105)
 				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
@@ -907,7 +1105,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 					g.prevConfirm2State = false
 				}
 			} else if g.prevConfirm3State{
-				screen.Fill(color.Black)
+				if g.InstallSkinsSixBg {
+					logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+					if err != nil {
+						log.Fatal(err)
+					}
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Scale(0.31, 0.5)
+					screen.DrawImage(logo, op)
+				} else {
+					screen.Fill(color.Black)
+				}
 				ebitenutil.DebugPrintAt(screen, "Are you sure you want to load", 75, 80)
 				ebitenutil.DebugPrintAt(screen, "progress from save 3", 100, 105)
 				ebitenutil.DebugPrintAt(screen, "(Y)Yes", 105, 135)
@@ -921,7 +1129,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 	if(g.WinBattleOne){
-		screen.Fill(color.Black)
+		if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 		ebitenutil.DebugPrintAt(screen, "You win!!!", 135, 40)
 		geoM := ebiten.GeoM{}
 		geoM.Translate(float64(screenWidth/2-300), float64(screenHeight/2-140))
@@ -935,7 +1153,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.WinBattleOne = false
 		g.ScreenEnd = true
 	} else if (g.WinBattleTwo){
-		screen.Fill(color.Black)
+		if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 		ebitenutil.DebugPrintAt(screen, "You win!!!", 135, 50)
 		geoM := ebiten.GeoM{}
 		geoM.Translate(float64(screenWidth/2-35), float64(screenHeight/2-92))
@@ -949,7 +1177,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.WinBattleTwo = false
 		g.ScreenEnd = true
 	} else if (g.WinBattleThree){
-		screen.Fill(color.Black)
+		if g.InstallSkinsSixBg {
+				logo, _, err := ebitenutil.NewImageFromFile("images/bg_skinspr.png")
+				if err != nil {
+					log.Fatal(err)
+				}
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Scale(0.31, 0.5)
+				screen.DrawImage(logo, op)
+			} else {
+				screen.Fill(color.Black)
+			}
 		ebitenutil.DebugPrintAt(screen, "You win!!!", 128, 38)
 		geoM := ebiten.GeoM{}
 		geoM.Translate(float64(screenWidth/2-155), float64(screenHeight/2-135))
@@ -971,6 +1209,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "Save(K)", 275, 100)
 	ebitenutil.DebugPrintAt(screen, "Load(L)", 275, 120)
 	ebitenutil.DebugPrintAt(screen, "Skins(I)", 0, 100)
+	ebitenutil.DebugPrintAt(screen, "SkinsBG(U)", 0, 120)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
